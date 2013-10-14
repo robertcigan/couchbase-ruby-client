@@ -27,7 +27,12 @@ end
 
 # Patch for MultiJson versions < 1.3.3
 require 'multi_json/version'
-if Gem::Version.new(MultiJson::VERSION) < Gem::Version.new('1.3.3')
+version = begin
+            MultiJson::VERSION
+          rescue NameError
+            MultiJson::Version.to_s
+          end.dup # because Gem::Version modifies it
+if Gem::Version.new(version) < Gem::Version.new('1.3.3')
   class << MultiJson
     alias :dump :encode
     alias :load :decode
@@ -38,6 +43,9 @@ if multi_json_engine.name =~ /JsonGem$/
   class << multi_json_engine
     alias _load_object load
     def load(string, options = {})
+      if string.respond_to?(:read)
+        string = string.read
+      end
       if string =~ /\A\s*[{\[]/
         _load_object(string, options)
       else
